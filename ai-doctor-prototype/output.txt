@@ -1,0 +1,211 @@
+########## SCENARIO: rising ##########
+
+
+=== AI DOCTOR PROTOTYPE — headless run ===
+scenario: rising
+
+T+     Temp °C  Risk  Level      Pattern       Forecast 4h  Severity  Action
+00:15  37.1     0     LOW        Collecting…   -            Stable    LOG & OBSERVE
+00:30  37.3     0     LOW        Collecting…   -            Stable    LOG & OBSERVE
+00:45  37.4     0     LOW        Collecting…   38.9         Stable    LOG & OBSERVE
+01:00  37.4     0     LOW        Afebrile      38.9         Stable    LOG & OBSERVE
+01:15  37.6     3     LOW        Afebrile      39.1         Stable    LOG & OBSERVE
+01:30  37.6     2     LOW        Afebrile      38.8         Stable    LOG & OBSERVE
+01:45  37.9     8     LOW        Afebrile      38.9         Stable    LOG & OBSERVE
+02:00  37.8     8     LOW        Afebrile      38.8         Stable    LOG & OBSERVE
+02:15  37.9     9     LOW        Afebrile      38.7         Stable    LOG & OBSERVE
+02:30  38.0     10    LOW        Intermittent  38.7         Stable    LOG & OBSERVE
+02:45  38.0     10    LOW        Intermittent  38.7         Stable    LOG & OBSERVE
+03:00  38.0     10    LOW        Intermittent  38.5         Stable    LOG & OBSERVE
+03:15  38.0     10    LOW        Intermittent  38.4         Stable    LOG & OBSERVE
+03:30  38.0     10    LOW        Continuous    38.1         Stable    LOG & OBSERVE
+03:45  38.0     10    LOW        Continuous    38.1         Stable    LOG & OBSERVE
+04:00  38.0     10    LOW        Continuous    38.0         Stable    LOG & OBSERVE
+04:15  38.0     10    LOW        Continuous    38.0         Stable    LOG & OBSERVE
+04:30  38.0     10    LOW        Continuous    38.0         Stable    LOG & OBSERVE
+04:45  38.1     13    LOW        Continuous    38.1         Mild      LOG & OBSERVE
+05:00  38.0     11    LOW        Continuous    38.1         Stable    LOG & OBSERVE
+05:15  38.1     13    LOW        Continuous    38.2         Mild      LOG & OBSERVE
+05:30  38.4     19    LOW        Continuous    38.6         Mild      LOG & OBSERVE
+05:45  38.5     23    LOW        Continuous    39.0         Mild      LOG & OBSERVE
+06:00  38.7     25    LOW        Continuous    39.5         Mild      LOG & OBSERVE
+06:15  38.9     30    LOW        Continuous    39.9         Mild      LOG & OBSERVE
+06:30  38.9     31    LOW        Continuous    40.2         Mild      LOG & OBSERVE
+
+--- Symptom logger: patient submits symptoms ---
+symptoms: Severe body ache + Shortness of breath
+temp 38.9 °C  →  risk 67/100  →  MODERATE  →  severity Moderate
+
+--- Closed-loop alert log (1 generated) ---
+[WARN] T+06:30  Moderate risk — automated follow-up in progress
+         Virtual assistant gathering context before clinician escalation
+
+--- Virtual AI Doctor (NLP) ---
+Patient : What should I do if my temperature rises above 102°F?
+AI Doctor: Above 102 °F (38.9 °C):
+           • Sip fluids every 15 minutes, rest in a cool room.
+           • Lukewarm sponging — never cold water or alcohol.
+           • Do not self-medicate unless your doctor has prescribed it.
+           Your current reading is 38.9 °C.
+
+Patient : Do I need a doctor?
+AI Doctor: A routine consultation is reasonable. I will share your 24 h fever curve with your doctor through the dashboard.
+
+Patient : my head hurts and I have a fever
+AI Doctor: Headache with fever: rest, fluids, dim lighting. Paracetamol only if your doctor has approved it for you.
+
+--- Clinician triage list (auto-ranked) ---
+#  Patient             Temp    Pattern       Risk  Level
+1  R. Kumar            39.4    Continuous    99    HIGH
+2  You (this device)   38.9    Continuous    67    MODERATE
+3  S. Iyer             38.6    Remittent     36    LOW
+4  A. Verma            38.1    Intermittent  22    LOW
+5  M. Das              37.6    Remittent     10    LOW
+6  P. Nair             37.2    Normal        10    LOW
+7  K. Reddy            36.9    Normal        6     LOW
+
+Cloud counters → packets: 26, inferences: 26, alerts: 1
+=== end of run ===
+
+########## SCENARIO: critical ##########
+
+
+=== AI DOCTOR PROTOTYPE — headless run ===
+scenario: critical
+
+T+     Temp °C  Risk  Level      Pattern       Forecast 4h  Severity  Action
+00:15  37.2     0     LOW        Collecting…   -            Stable    LOG & OBSERVE
+00:30  37.2     0     LOW        Collecting…   -            Stable    LOG & OBSERVE
+00:45  37.5     0     LOW        Collecting…   39.0         Stable    LOG & OBSERVE
+01:00  37.7     4     LOW        Afebrile      39.2         Stable    LOG & OBSERVE
+01:15  37.6     3     LOW        Afebrile      39.1         Stable    LOG & OBSERVE
+01:30  37.6     3     LOW        Afebrile      38.9         Stable    LOG & OBSERVE
+01:45  37.7     4     LOW        Afebrile      38.7         Stable    LOG & OBSERVE
+02:00  37.8     7     LOW        Afebrile      38.6         Stable    LOG & OBSERVE
+02:15  38.4     19    LOW        Remittent     39.2         Mild      LOG & OBSERVE
+02:30  38.2     15    LOW        Intermittent  39.2         Mild      LOG & OBSERVE
+02:45  38.3     17    LOW        Intermittent  39.3         Mild      LOG & OBSERVE
+03:00  38.3     17    LOW        Intermittent  39.5         Mild      LOG & OBSERVE
+03:15  38.3     17    LOW        Intermittent  39.4         Mild      LOG & OBSERVE
+03:30  38.3     17    LOW        Intermittent  39.1         Mild      LOG & OBSERVE
+03:45  38.5     23    LOW        Intermittent  39.0         Mild      LOG & OBSERVE
+04:00  38.6     24    LOW        Intermittent  38.8         Mild      LOG & OBSERVE
+04:15  38.6     25    LOW        Intermittent  39.2         Mild      LOG & OBSERVE
+04:30  38.8     29    LOW        Intermittent  39.5         Mild      LOG & OBSERVE
+04:45  39.2     50    MODERATE   Intermittent  40.1         Moderate  FOLLOW-UP Qs
+05:00  39.4     54    MODERATE   Intermittent  40.7         Moderate  FOLLOW-UP Qs
+05:15  39.5     57    MODERATE   Remittent     41.0         Critical  FOLLOW-UP Qs
+05:30  39.7     61    MODERATE   Remittent     41.2         Critical  FOLLOW-UP Qs
+05:45  39.9     65    MODERATE   Remittent     41.4         Critical  FOLLOW-UP Qs
+06:00  39.9     65    MODERATE   Remittent     41.4         Critical  FOLLOW-UP Qs
+06:15  40.0     68    MODERATE   Remittent     41.5         Critical  FOLLOW-UP Qs
+06:30  40.0     67    MODERATE   Remittent     41.2         Critical  FOLLOW-UP Qs
+
+--- Symptom logger: patient submits symptoms ---
+symptoms: Severe body ache + Shortness of breath
+temp 40.0 °C  →  risk 100/100  →  HIGH  →  severity Critical
+
+--- Closed-loop alert log (3 generated) ---
+[HIGH] T+06:30  High-risk patient: 40.0 °C, risk score 100
+         Clinician dashboard paged · SMS to emergency contact · virtual doctor engaged
+[WARN] T+04:45  Moderate risk — automated follow-up in progress
+         Virtual assistant gathering context before clinician escalation
+[HIGH] T+02:15  Red-flag: high fever + rash detected
+         Immediate isolation · clinician paged
+
+--- Virtual AI Doctor (NLP) ---
+Patient : What should I do if my temperature rises above 102°F?
+AI Doctor: Above 102 °F (38.9 °C):
+           • Sip fluids every 15 minutes, rest in a cool room.
+           • Lukewarm sponging — never cold water or alcohol.
+           • Do not self-medicate unless your doctor has prescribed it.
+           Your current reading is 40.0 °C.
+
+Patient : Do I need a doctor?
+AI Doctor: Given your current HIGH risk, please consult a doctor now — I have already notified the on-duty clinician.
+
+Patient : my head hurts and I have a fever
+AI Doctor: Headache with fever: rest, fluids, dim lighting. Paracetamol only if your doctor has approved it for you.
+
+--- Clinician triage list (auto-ranked) ---
+#  Patient             Temp    Pattern       Risk  Level
+1  You (this device)   40.0    Remittent     100   HIGH
+2  R. Kumar            39.4    Continuous    99    HIGH
+3  S. Iyer             38.6    Remittent     36    LOW
+4  A. Verma            38.1    Intermittent  22    LOW
+5  M. Das              37.6    Remittent     10    LOW
+6  P. Nair             37.2    Normal        10    LOW
+7  K. Reddy            36.9    Normal        6     LOW
+
+Cloud counters → packets: 26, inferences: 26, alerts: 3
+=== end of run ===
+
+########## SCENARIO: mild ##########
+
+
+=== AI DOCTOR PROTOTYPE — headless run ===
+scenario: mild
+
+T+     Temp °C  Risk  Level      Pattern       Forecast 4h  Severity  Action
+00:15  37.0     0     LOW        Collecting…   -            Stable    LOG & OBSERVE
+00:30  37.1     0     LOW        Collecting…   -            Stable    LOG & OBSERVE
+00:45  37.2     0     LOW        Collecting…   38.7         Stable    LOG & OBSERVE
+01:00  37.3     0     LOW        Afebrile      38.7         Stable    LOG & OBSERVE
+01:15  37.6     1     LOW        Afebrile      39.1         Stable    LOG & OBSERVE
+01:30  37.6     2     LOW        Afebrile      38.9         Stable    LOG & OBSERVE
+01:45  37.6     1     LOW        Afebrile      38.7         Stable    LOG & OBSERVE
+02:00  37.7     4     LOW        Afebrile      38.6         Stable    LOG & OBSERVE
+02:15  37.6     1     LOW        Afebrile      38.3         Stable    LOG & OBSERVE
+02:30  37.6     1     LOW        Afebrile      38.1         Stable    LOG & OBSERVE
+02:45  37.6     3     LOW        Afebrile      37.9         Stable    LOG & OBSERVE
+03:00  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+03:15  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+03:30  37.6     1     LOW        Afebrile      37.5         Stable    LOG & OBSERVE
+03:45  37.6     1     LOW        Afebrile      37.5         Stable    LOG & OBSERVE
+04:00  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+04:15  37.6     1     LOW        Afebrile      37.5         Stable    LOG & OBSERVE
+04:30  37.6     1     LOW        Afebrile      37.5         Stable    LOG & OBSERVE
+04:45  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+05:00  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+05:15  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+05:30  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+05:45  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+06:00  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+06:15  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+06:30  37.6     1     LOW        Afebrile      37.6         Stable    LOG & OBSERVE
+
+--- Symptom logger: patient submits symptoms ---
+symptoms: Severe body ache + Shortness of breath
+temp 37.6 °C  →  risk 45/100  →  MODERATE  →  severity Moderate
+
+--- Closed-loop alert log (1 generated) ---
+[WARN] T+06:30  Moderate risk — automated follow-up in progress
+         Virtual assistant gathering context before clinician escalation
+
+--- Virtual AI Doctor (NLP) ---
+Patient : What should I do if my temperature rises above 102°F?
+AI Doctor: Above 102 °F (38.9 °C):
+           • Sip fluids every 15 minutes, rest in a cool room.
+           • Lukewarm sponging — never cold water or alcohol.
+           • Do not self-medicate unless your doctor has prescribed it.
+           Your current reading is 37.6 °C.
+
+Patient : Do I need a doctor?
+AI Doctor: A routine consultation is reasonable. I will share your 24 h fever curve with your doctor through the dashboard.
+
+Patient : my head hurts and I have a fever
+AI Doctor: Headache with fever: rest, fluids, dim lighting. Paracetamol only if your doctor has approved it for you.
+
+--- Clinician triage list (auto-ranked) ---
+#  Patient             Temp    Pattern       Risk  Level
+1  R. Kumar            39.4    Continuous    99    HIGH
+2  You (this device)   37.6    Afebrile      45    MODERATE
+3  S. Iyer             38.6    Remittent     36    LOW
+4  A. Verma            38.1    Intermittent  22    LOW
+5  M. Das              37.6    Remittent     10    LOW
+6  P. Nair             37.2    Normal        10    LOW
+7  K. Reddy            36.9    Normal        6     LOW
+
+Cloud counters → packets: 26, inferences: 26, alerts: 1
+=== end of run ===
+

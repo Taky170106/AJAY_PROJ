@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Doctor — Remote Fever &amp; Symptom Monitoring (Prototype)</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#111c33; --panel2:#16233f; --line:#24334f;
+    --txt:#e6edf7; --muted:#8ea3c4;
+    --blue:#3b82f6; --cyan:#22d3ee; --green:#22c55e;
+    --amber:#f59e0b; --red:#ef4444; --violet:#8b5cf6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:14px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+  header{padding:16px 22px;background:linear-gradient(90deg,#0b1224,#132044);
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .logo{width:38px;height:38px;border-radius:11px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    display:grid;place-items:center;font-weight:800;color:#04101f}
+  header h1{font-size:17px;margin:0;letter-spacing:.2px}
+  header .sub{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .pill{margin-left:auto;font-size:11px;padding:5px 11px;border-radius:999px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--muted)}
+  .pill b{color:var(--cyan)}
+
+  nav{display:flex;gap:6px;padding:10px 16px;background:#0c1425;
+    border-bottom:1px solid var(--line);flex-wrap:wrap}
+  nav button{background:transparent;border:1px solid transparent;color:var(--muted);
+    padding:8px 15px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600}
+  nav button.on{background:var(--panel2);border-color:var(--line);color:var(--txt)}
+  nav button:hover{color:var(--txt)}
+
+  main{padding:16px;max-width:1360px;margin:0 auto}
+  .grid{display:grid;gap:14px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:1.4fr 1fr}
+  @media(max-width:980px){.g3,.g2{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px}
+  .card h3{margin:0 0 11px;font-size:13px;text-transform:uppercase;
+    letter-spacing:.7px;color:var(--muted);display:flex;align-items:center;gap:8px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);
+    box-shadow:0 0 9px var(--cyan);animation:p 1.6s infinite}
+  @keyframes p{50%{opacity:.35}}
+
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .stat .v{font-size:25px;font-weight:700;margin-top:3px}
+  .stat .d{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+  .temp{font-size:52px;font-weight:800;letter-spacing:-2px;line-height:1}
+  .temp small{font-size:20px;font-weight:600;color:var(--muted)}
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11.5px;
+    font-weight:700;letter-spacing:.4px}
+  .b-ok{background:#12341f;color:#5eead4;border:1px solid #1d5c37}
+  .b-mod{background:#3a2a09;color:#fcd34d;border:1px solid #6b4a10}
+  .b-high{background:#3b1114;color:#fca5a5;border:1px solid #7a1f26}
+
+  button.act{background:var(--blue);border:0;color:#fff;padding:9px 15px;
+    border-radius:9px;cursor:pointer;font-weight:600;font-size:13px}
+  button.act:hover{filter:brightness(1.12)}
+  button.act.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  button.act:disabled{opacity:.45;cursor:not-allowed}
+
+  canvas{width:100%;height:230px;display:block}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:7px}
+  .legend i{display:inline-block;width:16px;height:3px;border-radius:2px;
+    margin-right:5px;vertical-align:middle}
+
+  .syms{display:flex;flex-wrap:wrap;gap:7px}
+  .syms label{background:var(--panel2);border:1px solid var(--line);padding:6px 11px;
+    border-radius:999px;cursor:pointer;font-size:12.5px;user-select:none}
+  .syms label:has(input:checked){background:#1b3a6b;border-color:var(--blue);color:#dbeafe}
+  .syms input{display:none}
+
+  table{width:100%;border-collapse:collapse;font-size:12.8px}
+  th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;
+    letter-spacing:.6px;padding:8px 9px;border-bottom:1px solid var(--line)}
+  td{padding:9px;border-bottom:1px solid #1a2740;vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  tr.click{cursor:pointer}
+  tr.click:hover td{background:#16233f}
+
+  .alert{border-left:3px solid var(--red);background:#241218;padding:9px 12px;
+    border-radius:0 9px 9px 0;margin-bottom:8px}
+  .alert.warn{border-color:var(--amber);background:#241b0d}
+  .alert .t{font-weight:700;font-size:12.6px}
+  .alert .m{font-size:11.8px;color:var(--muted);margin-top:2px}
+
+  .chat{height:300px;overflow-y:auto;background:#0c1425;border:1px solid var(--line);
+    border-radius:11px;padding:11px;margin-bottom:9px}
+  .msg{margin-bottom:9px;display:flex}
+  .msg .b{max-width:82%;padding:8px 12px;border-radius:13px;font-size:13px;white-space:pre-wrap}
+  .msg.u{justify-content:flex-end}
+  .msg.u .b{background:var(--blue);border-bottom-right-radius:4px}
+  .msg.a .b{background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .chatIn{display:flex;gap:8px}
+  .chatIn input{flex:1;background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt);padding:10px 12px;border-radius:9px;outline:none;font-size:13px}
+
+  .kv{display:flex;justify-content:space-between;padding:7px 0;
+    border-bottom:1px dashed #1e2c47;font-size:13px}
+  .kv:last-child{border:0}
+  .kv span:first-child{color:var(--muted)}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:8px;font-style:italic}
+  .arch{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+  .arch .n{flex:1;min-width:170px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:11px;padding:11px}
+  .arch .n b{display:block;font-size:12.5px;margin-bottom:5px;color:var(--cyan)}
+  .arch .n p{margin:0;font-size:11.8px;color:var(--muted)}
+  .arr{align-self:center;color:var(--blue);font-weight:800}
+  .view{display:none}.view.on{display:block}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">AI</div>
+  <div>
+    <h1>AI Doctor — Intelligent Remote Fever &amp; Symptom Monitoring</h1>
+    <div class="sub">Prototype · Edge IoT Node → Cloud AI Engine → Closed-Loop Alerts → Clinician Dashboard</div>
+  </div>
+  <div class="pill">Gateway: <b>BLE + Wi-Fi</b> · TLS 1.3 · <span id="clock">--:--</span></div>
+</header>
+
+<nav>
+  <button class="on" data-v="patient">Patient Node</button>
+  <button data-v="cloud">Cloud AI Engine</button>
+  <button data-v="doctor">Clinician Dashboard</button>
+  <button data-v="arch">Architecture &amp; TRL</button>
+</nav>
+
+<main>
+
+<!-- ============ PATIENT ============ -->
+<section id="v-patient" class="view on">
+  <div class="grid g3" style="margin-bottom:14px">
+    <div class="stat"><div class="k">Live Temperature (IoT)</div>
+      <div class="v" id="sTemp">--</div><div class="d" id="sTempD">sensor idle</div></div>
+    <div class="stat"><div class="k">Pulse / SpO₂</div>
+      <div class="v" id="sVitals">--</div><div class="d">simulated wearable stream</div></div>
+    <div class="stat"><div class="k">AI Risk Score</div>
+      <div class="v" id="sRisk">--</div><div class="d" id="sRiskD">awaiting data</div></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3><span class="dot"></span>Fever Curve — Continuous IoT Capture (15 min interval)</h3>
+      <canvas id="chart" width="900" height="230"></canvas>
+      <div class="legend">
+        <span><i style="background:#22d3ee"></i>Measured temperature</span>
+        <span><i style="background:#8b5cf6"></i>LSTM forecast (next 4–6 h)</span>
+        <span><i style="background:#ef4444;height:2px"></i>39 °C danger threshold</span>
+        <span><i style="background:#f59e0b;height:2px"></i>38 °C fever threshold</span>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="act" id="btnStart">▶ Start monitoring</button>
+        <button class="act ghost" id="btnStep">+1 reading</button>
+        <select id="scenario" style="background:var(--panel2);color:var(--txt);
+          border:1px solid var(--line);padding:9px;border-radius:9px">
+          <option value="mild">Scenario: Mild / recovering</option>
+          <option value="rising" selected>Scenario: Rising fever (deterioration)</option>
+          <option value="critical">Scenario: Critical spike + rash</option>
+        </select>
+      </div>
+      <div class="hint">Demo note: hardware is simulated. In the real invention this stream
+        arrives from the ESP32 + thermistor node (±0.1 °C) over BLE/Wi-Fi.</div>
+    </div>
+
+    <div class="card">
+      <h3>Current status</h3>
+      <div class="temp" id="bigTemp">--<small> °C</small></div>
+      <div style="margin:10px 0"><span class="badge b-ok" id="riskBadge">AWAITING DATA</span></div>
+      <div class="kv"><span>Fever pattern (AI)</span><b id="kPattern">—</b></div>
+      <div class="kv"><span>4 h forecast</span><b id="kFc">—</b></div>
+      <div class="kv"><span>Illness severity class</span><b id="kSev">—</b></div>
+      <div class="kv"><span>Potential cause (AI hint)</span><b id="kCause">—</b></div>
+
+      <h3 style="margin-top:16px">Symptom logger (manual + voice)</h3>
+      <div class="syms" id="symList"></div>
+      <div class="row" style="margin-top:11px">
+        <button class="act ghost" id="btnVoice">🎙 Log by voice</button>
+        <button class="act" id="btnSubmit">Submit symptoms</button>
+      </div>
+      <div class="hint">Structured checklist = the "Symptom Logger" module; voice input uses
+        the Web Speech API where the browser supports it.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>Virtual AI Doctor — NLP voice/text assistant</h3>
+    <div class="chat" id="chat"></div>
+    <div class="chatIn">
+      <input id="chatIn" placeholder='Ask e.g. "What should I do if my temperature rises above 102°F?"'>
+      <button class="act" id="chatSend">Send</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CLOUD ============ -->
+<section id="v-cloud" class="view">
+  <div class="grid g3" style="margin-bottom:14px">
+    <div class="stat"><div class="k">Packets ingested</div><div class="v" id="cPkt">0</div>
+      <div class="d">filtered &amp; de-noised</div></div>
+    <div class="stat"><div class="k">AI inferences</div><div class="v" id="cInf">0</div>
+      <div class="d">pattern + risk + forecast</div></div>
+    <div class="stat"><div class="k">Alerts generated</div><div class="v" id="cAl">0</div>
+      <div class="d">closed-loop dispatch</div></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>AI processing pipeline (per reading)</h3>
+      <div class="arch">
+        <div class="n"><b>1 · Pre-process</b><p>Median filter removes motion / contact artefacts from the raw thermistor stream.</p></div>
+        <div class="arr">→</div>
+        <div class="n"><b>2 · Feature extraction</b><p>Slope, peak count, range, AUC — shape features of the fever curve.</p></div>
+        <div class="arr">→</div>
+        <div class="n"><b>3 · Pattern + severity</b><p>Classifies intermittent / remittent / continuous fever; RF-style severity class.</p></div>
+        <div class="arr">→</div>
+        <div class="n"><b>4 · Forecast</b><p>Sequence model projects temperature 4–6 h ahead to predict deterioration.</p></div>
+      </div>
+      <div class="row" style="margin-top:13px">
+        <div class="stat" style="flex:1"><div class="k">Detected pattern</div>
+          <div class="v" style="font-size:18px" id="cdPattern">—</div></div>
+        <div class="stat" style="flex:1"><div class="k">Risk score</div>
+          <div class="v" style="font-size:18px" id="cdRisk">—</div></div>
+        <div class="stat" style="flex:1"><div class="k">Next action</div>
+          <div class="v" style="font-size:18px" id="cdAction">—</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Alert centre — closed-loop dispatch</h3>
+      <div id="alertList" style="max-height:330px;overflow-y:auto">
+        <div class="hint">No alerts yet. Start monitoring on the Patient Node.</div>
+      </div>
+      <div class="hint">High risk → instant clinician alert + SMS to emergency contact.
+        Moderate risk → assistant asks follow-up questions before escalation.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>Doctor-approved guidance matrix (Table 2 of the disclosure)</h3>
+    <table>
+      <thead><tr><th>Symptom</th><th>AI detection</th><th>Prevention measures</th>
+        <th>Supervised medicine advice (example)</th><th>Red-flag alert</th></tr></thead>
+      <tbody id="guideBody"></tbody>
+    </table>
+    <div class="hint">Medicine column is illustrative only — real deployment requires a
+      licensed clinician to approve every template. RBAC + audit logging assumed.</div>
+  </div>
+</section>
+
+<!-- ============ DOCTOR ============ -->
+<section id="v-doctor" class="view">
+  <div class="grid g3" style="margin-bottom:14px">
+    <div class="stat"><div class="k">Patients monitored</div><div class="v" id="dCount">6</div>
+      <div class="d">multi-patient remote view</div></div>
+    <div class="stat"><div class="k">Critical / High</div><div class="v" id="dHigh">0</div>
+      <div class="d">auto-ranked by AI severity</div></div>
+    <div class="stat"><div class="k">Clinician response</div><div class="v" id="dResp">—</div>
+      <div class="d">proactive, data-driven</div></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>Patient triage list (auto-sorted by AI risk score)</h3>
+      <table>
+        <thead><tr><th>#</th><th>Patient</th><th>Temp</th><th>Pattern</th>
+          <th>Risk</th><th>Status</th></tr></thead>
+        <tbody id="triBody"></tbody>
+      </table>
+      <div class="hint">Click a row to open that patient's detail panel.</div>
+    </div>
+
+    <div class="card">
+      <h3>Patient detail &amp; actionable insights</h3>
+      <div id="pDetail">
+        <div class="hint">Select a patient from the triage list.</div>
+      </div>
+      <div class="row" style="margin-top:12px" id="docActions" style2="">
+        <button class="act" id="btnAck">✓ Acknowledge alert</button>
+        <button class="act ghost" id="btnAdvice">Send guidance</button>
+        <button class="act ghost" id="btnEscalate">Escalate / call</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>Historical analytics — temperature spikes vs. reported symptoms</h3>
+    <canvas id="chart2" width="900" height="200"></canvas>
+    <div class="legend"><span><i style="background:#22d3ee"></i>Selected patient temp</span>
+      <span><i style="background:#ef4444"></i>Symptom-report event</span></div>
+  </div>
+</section>
+
+<!-- ============ ARCH ============ -->
+<section id="v-arch" class="view">
+  <div class="card">
+    <h3>Three-tier system architecture (FIG. 2 of the disclosure)</h3>
+    <div class="arch">
+      <div class="n"><b>Patient Node — Edge Layer</b>
+        <p>ESP32 MCU · thermistor ±0.1 °C · optional SpO₂/pulse · BLE + Wi-Fi ·
+           24–48 h Li-ion · mobile app for symptom entry.</p></div>
+      <div class="arr">→</div>
+      <div class="n"><b>Cloud Intelligence Layer</b>
+        <p>TLS 1.2/1.3 channel · time-series DB · AI engine (pattern recognition,
+           LSTM forecast, RF/SVM severity) · alert dispatcher.</p></div>
+      <div class="arr">→</div>
+      <div class="n"><b>Clinician Node — Application Layer</b>
+        <p>RBAC web dashboard · triage ranking · alert centre · historical analytics
+           &amp; predictive graphs.</p></div>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <h3>What this prototype implements</h3>
+      <table><tbody>
+        <tr><td>✔ Continuous IoT-style temperature capture (simulated sensor)</td>
+            <td>§7.2 / §7.5</td></tr>
+        <tr><td>✔ Symptom logger + voice input</td><td>§7.3</td></tr>
+        <tr><td>✔ Fever-pattern recognition &amp; severity classification</td><td>§7.4</td></tr>
+        <tr><td>✔ 4–6 h temperature forecast (LSTM stand-in)</td><td>§7.4</td></tr>
+        <tr><td>✔ Closed-loop alerting (high → clinician, moderate → assistant)</td><td>§7.5</td></tr>
+        <tr><td>✔ Virtual AI Doctor (NLP text / voice)</td><td>§7.3</td></tr>
+        <tr><td>✔ Clinician triage dashboard + alert centre + analytics</td><td>§7.3</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card">
+      <h3>Deliberately out of scope (not in a small prototype)</h3>
+      <table><tbody>
+        <tr><td>✘ Physical ESP32 / BLE firmware and PCB</td><td>needs hardware</td></tr>
+        <tr><td>✘ Trained LSTM / Random Forest weights</td><td>heuristic stand-ins used</td></tr>
+        <tr><td>✘ Real SMS / e-mail / push gateway</td><td>logged in-app instead</td></tr>
+        <tr><td>✘ HIPAA-grade deployment, RBAC server, encryption PKI</td><td>design-level only</td></tr>
+        <tr><td>✘ Multi-user backend &amp; persistence</td><td>in-memory state</td></tr>
+      </tbody></table>
+      <div class="hint">Technology readiness of the disclosure: roughly TRL 3–4
+        (proof of concept validated in a lab-relevant environment).</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ============================================================
+   AI Doctor — minimal implementation of the disclosed invention
+   Layers: Edge (simulated sensor) → Cloud AI → Alerts → Clinician
+   ============================================================ */
+
+const SYMPTOMS = [
+  {id:'cold',   n:'Cold / running nose', w:4},
+  {id:'head',   n:'Headache',            w:6},
+  {id:'ache',   n:'Severe body ache',    w:12},
+  {id:'cough',  n:'Cough',               w:6},
+  {id:'fatigue',n:'Fatigue',             w:6},
+  {id:'nausea', n:'Nausea',              w:8},
+  {id:'vomit',  n:'Vomiting',            w:16},
+  {id:'stomach',n:'Stomach pain',        w:10},
+  {id:'breath', n:'Shortness of breath', w:24},
+  {id:'rash',   n:'Rash',                w:26},
+  {id:'throat', n:'Sore throat',         w:5},
+  {id:'chills', n:'Chills / shivering',  w:9}
+];
+
+const GUIDANCE = [
+  ['Fever (≥38 °C)','Moderate','Hydration, rest, lukewarm sponging, light diet',
+   'Paracetamol 500 mg (if prescribed)','Yes — if >39 °C or 3+ days'],
+  ['Cold / running nose','Mild','Steam inhalation, warm fluids, salt-water gargle',
+   'Antihistamine (doctor-approved)','No'],
+  ['Stomach pain','Moderate','ORS, soft diet, avoid oily foods',
+   'Antacid / DOM syrup (if prescribed)','Yes — if sharp pain'],
+  ['Vomiting','Mild–High','Hydration with ORS, avoid solid food',
+   'Ondansetron (doctor-prescribed)','Yes — if dehydration detected'],
+  ['Headache','Mild','Rest, hydration, proper sleep',
+   'Paracetamol (per doctor template)','No'],
+  ['High fever + rash','High risk','Immediate rest, isolation','—',
+   'IMMEDIATE ALERT TO DOCTOR']
+];
+
+/* ---------------- state ---------------- */
+const S = {
+  running:false, t:0, tick:0,
+  temps:[], times:[], symptoms:new Set(),
+  risk:0, level:'NONE', pattern:'—', forecast:0, sev:'—', cause:'—',
+  packets:0, inferences:0, alerts:0,
+  log:[], patients:[], selected:null
+};
+
+const SEED_PATIENTS = [
+  {name:'R. Kumar',   age:67, temp:39.4, trend:'up',   syms:['ache','breath','chills'], pat:'Continuous'},
+  {name:'S. Iyer',    age:34, temp:38.6, trend:'up',   syms:['head','fatigue'],         pat:'Remittent'},
+  {name:'A. Verma',   age:45, temp:38.1, trend:'flat', syms:['cold','throat'],          pat:'Intermittent'},
+  {name:'M. Das',     age:28, temp:37.6, trend:'down', syms:['nausea'],                 pat:'Remittent'},
+  {name:'P. Nair',    age:52, temp:37.2, trend:'flat', syms:['stomach'],                pat:'Normal'},
+  {name:'K. Reddy',   age:23, temp:36.9, trend:'down', syms:['fatigue'],                pat:'Normal'}
+];
+
+/* ---------------- helpers ---------------- */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const f1=v=>(Math.round(v*10)/10).toFixed(1);
+
+function levelOf(risk){
+  if(risk>=70) return 'HIGH';
+  if(risk>=40) return 'MODERATE';
+  return 'LOW';
+}
+
+/* --- AI #1: risk score = multi-modal fusion (temperature + symptoms) --- */
+function riskScore(temp, syms){
+  let s = 0;
+  if(temp>=37.5) s += (temp-37.5)*22;          // quantitative term
+  if(temp>=39)   s += 12;                       // danger bonus
+  for(const id of syms){
+    const x = SYMPTOMS.find(y=>y.id===id);
+    if(x) s += x.w;
+  }
+  if(syms.has('rash') && temp>=39) s += 25;      // Table-2 red flag combination
+  if(syms.has('breath') || syms.has('rash')) s = Math.max(s, 45);  // red-flag floor
+  return Math.round(clamp(s,0,100));
+}
+
+/* --- AI #2: fever-curve shape → clinical pattern --- */
+function detectPattern(ts){
+  if(ts.length<4) return 'Collecting…';
+  const last = ts.slice(-12);
+  const mean = last.reduce((a,b)=>a+b,0)/last.length;
+  const min = Math.min(...last), max = Math.max(...last);
+  const range = max-min;
+  if(mean<37.6) return 'Afebrile';
+
+  let turns=0;
+  for(let i=2;i<last.length;i++){
+    const a=last[i-1]-last[i-2], b=last[i]-last[i-1];
+    if((a>0&&b<0)||(a<0&&b>0)) turns++;
+  }
+  if(turns>=3 && range>0.9) return 'Intermittent';
+  if(range<=0.6)            return 'Continuous';   // steady plateau above 37.6
+  if(min>37.6 && range>1.1) return 'Remittent';
+  if(min>37.9)              return 'Continuous';
+  return turns>=2 ? 'Intermittent' : 'Remittent';
+}
+
+/* --- AI #3: sequence forecast (LSTM stand-in = robust linear trend) --- */
+function forecastTemp(ts, hours=4){
+  if(ts.length<3) return null;
+  const w = ts.slice(-8);
+  const n = w.length;
+  const xm=(n-1)/2, ym=w.reduce((a,b)=>a+b,0)/n;
+  let num=0, den=0;
+  w.forEach((y,i)=>{num+=(i-xm)*(y-ym);den+=(i-xm)**2;});
+  const slope = den? num/den : 0;
+  const steps = hours*4;                       // 15-min readings
+  const now = ts[ts.length-1];                 // sanity: ≤1.5 °C drift in 4 h
+  return clamp(ym + slope*(steps - xm), now-1.5, now+1.5);
+}
+
+function classify(temp, syms, fc){
+  const s = riskScore(temp, syms);
+  const rising = fc!=null && fc-temp>0.5;
+  if(s>=70 || (temp>=39.5 && rising)) return {sev:'Critical', cause:'Viral / systemic infection — escalation advised'};
+  if(s>=40) return {sev:'Moderate', cause:'Viral fever pattern likely'};
+  if(temp>=38) return {sev:'Mild', cause:'Self-limiting febrile illness'};
+  return {sev:'Stable', cause:'No abnormality detected'};
+}
+
+/* ---------------- simulation (edge layer) ---------------- */
+function nextTemp(){
+  const sc = $('#scenario').value;
+  const noise = (Math.random()-0.5)*0.22;
+  const i = S.tick;
+  let base = 36.9;
+  if(sc==='mild')      base = 37.0 + Math.sin(i/6)*0.7 - Math.min(i*0.012,0.5);
+  else if(sc==='rising')base = 36.9 + i*0.075 + Math.sin(i/4)*0.35;
+  else                 base = 36.9 + i*0.085 + Math.sin(i/3)*0.35 + (i>8?0.6:0);
+  if(sc==='critical' && i===9){ raiseAlert('HIGH','Red-flag: high fever + rash detected','Immediate isolation · clinician paged'); }
+  return clamp(base+noise, 35.5, 42.2);
+}
+
+function step(){
+  S.tick++;
+  S.t += 15;                                   // +15 simulated minutes
+  const raw = nextTemp();
+  // pre-processing: median-of-3 de-noise
+  S.temps.push(median3(raw));
+  S.times.push(S.t);
+  S.packets++; S.inferences++;
+
+  const temp = S.temps[S.temps.length-1];
+  S.risk    = riskScore(temp, S.symptoms);
+  S.level   = levelOf(S.risk);
+  S.pattern = detectPattern(S.temps);
+  S.forecast= forecastTemp(S.temps,4);
+  const c = classify(temp, S.symptoms, S.forecast);
+  S.sev=c.sev; S.cause=c.cause;
+
+  decide(temp);
+  renderAll();
+}
+
+function median3(v){
+  const a=[S.temps[S.temps.length-1], S.temps[S.temps.length-2], v].filter(x=>x!=null);
+  a.push(v);
+  return [...a].sort((x,y)=>x-y)[Math.floor(a.length/2)];
+}
+
+/* --- AI #4: closed-loop decision & alerting (transition-based, no spam) --- */
+function decide(temp){
+  const changed = S.level !== S._lastLevel;
+  const stale   = S.tick - (S._lastAlertTick ?? -99);
+
+  if(S.level==='HIGH' && (changed || stale>=8)){
+    S._lastAlertTick = S.tick;
+    raiseAlert('HIGH',
+      'High-risk patient: '+f1(temp)+' °C, risk score '+S.risk,
+      'Clinician dashboard paged · SMS to emergency contact · virtual doctor engaged');
+    if(changed) botSay('⚠️ Your reading is '+f1(temp)+' °C with a risk score of '+S.risk+
+      '. This is a high-risk pattern. Please contact your doctor now. I have alerted the on-duty clinician.');
+  } else if(S.level==='MODERATE' && changed){
+    S._lastAlertTick = S.tick;
+    const has = id=>S.symptoms.has(id);
+    const q = has('breath') ? 'Are you experiencing shortness of breath right now?'
+            : has('vomit')  ? 'Are you able to keep fluids down, or are you vomiting?'
+            : has('rash')   ? 'Is the rash spreading, or are you feeling faint?'
+            : 'Are you experiencing shortness of breath, or a rash anywhere on your body?';
+    raiseAlert('WARN','Moderate risk — automated follow-up in progress',
+      'Virtual assistant gathering context before clinician escalation');
+    botSay('Your temperature is '+f1(temp)+' °C (moderate risk, score '+S.risk+').\n'+q);
+  }
+  S._lastLevel = S.level;
+}
+
+function raiseAlert(level, title, msg){
+  S.alerts++;
+  S.log.unshift({level,title,msg,time:stamp()});
+  renderAlerts();
+}
+
+function stamp(){ const m=S.t; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+
+/* ---------------- rendering ---------------- */
+function renderAll(){
+  const temp = S.temps.length? S.temps[S.temps.length-1]:null;
+
+  $('#clock').textContent = 'T+'+stamp();
+  $('#sTemp').textContent = temp!=null? f1(temp)+' °C':'--';
+  $('#sTempD').textContent= temp!=null? 'last packet '+stamp()+' · 15-min interval':'sensor idle';
+  const bpm = temp!=null? Math.round(72+(temp-36.8)*9):null;
+  const spo2= temp!=null? clamp(Math.round(99-(temp-37)*1.6),90,100):null;
+  $('#sVitals').textContent = bpm? bpm+' / '+spo2+'%':'--';
+  $('#sRisk').textContent   = S.temps.length? S.risk+'/100':'--';
+  $('#sRiskD').textContent  = S.temps.length? S.level+' risk · '+S.sev+' severity':'awaiting data';
+
+  $('#bigTemp').innerHTML = (temp!=null? f1(temp):'--')+'<small> °C</small>';
+  const b=$('#riskBadge');
+  b.className='badge '+(S.level==='HIGH'?'b-high':S.level==='MODERATE'?'b-mod':'b-ok');
+  b.textContent = S.temps.length? S.level+' RISK · '+S.sev.toUpperCase():'AWAITING DATA';
+  $('#kPattern').textContent=S.pattern;
+  $('#kFc').textContent     = S.forecast!=null? f1(S.forecast)+' °C in 4 h':'—';
+  $('#kSev').textContent    = S.temps.length? S.sev:'—';
+  $('#kCause').textContent  = S.temps.length? S.cause:'—';
+
+  $('#cPkt').textContent=S.packets; $('#cInf').textContent=S.inferences;
+  $('#cAl').textContent=S.alerts;
+  $('#cdPattern').textContent=S.pattern;
+  $('#cdRisk').textContent=S.temps.length?S.risk+'/100':'—';
+  $('#cdAction').textContent=S.level==='HIGH'?'PAGE CLINICIAN':S.level==='MODERATE'?'FOLLOW-UP Qs':'LOG & OBSERVE';
+
+  drawChart($('#chart'), S.temps, S.forecast);
+  renderTriage();
+  if(S.selected) selectPatient(S.selected,true);
+}
+
+function drawChart(cv, data, fc){
+  const c=cv.getContext('2d'), W=cv.width, H=cv.height;
+  c.clearRect(0,0,W,H);
+  const lo=36, hi=42, pad=34;
+  const x=i=>pad+(i/Math.max(1,data.length-1))*(W-pad-14);
+  const y=v=>H-pad-((v-lo)/(hi-lo))*(H-pad-16);
+
+  c.strokeStyle='#1e2c47'; c.fillStyle='#8ea3c4'; c.font='11px Segoe UI';
+  for(let v=lo;v<=hi;v++){
+    c.beginPath(); c.moveTo(pad,y(v)); c.lineTo(W-14,y(v)); c.stroke();
+    c.fillText(v.toFixed(0),8,y(v)+4);
+  }
+  // thresholds
+  const thr=(v,col)=>{c.strokeStyle=col;c.setLineDash([5,5]);c.beginPath();
+    c.moveTo(pad,y(v));c.lineTo(W-14,y(v));c.stroke();c.setLineDash([]);};
+  thr(38,'#f59e0b'); thr(39,'#ef4444');
+
+  if(data.length<2){
+    c.fillStyle='#8ea3c4'; c.font='13px Segoe UI';
+    c.fillText('Waiting for the first sensor packets…',pad+10,H/2);
+    return;
+  }
+  // measured line
+  c.strokeStyle='#22d3ee'; c.lineWidth=2.4; c.beginPath();
+  data.forEach((v,i)=> i?c.lineTo(x(i),y(v)):c.moveTo(x(i),y(v)));
+  c.stroke();
+  c.fillStyle='#22d3ee';
+  data.forEach((v,i)=>{c.beginPath();c.arc(x(i),y(v),3,0,7);c.fill();});
+  // forecast (dashed violet, 4h = 16 steps ahead)
+  if(fc!=null){
+    c.strokeStyle='#8b5cf6'; c.lineWidth=2.2; c.setLineDash([6,5]);
+    c.beginPath(); const last=data.length-1;
+    c.moveTo(x(last),y(data[last]));
+    c.lineTo(x(last+5),y(fc)); c.stroke(); c.setLineDash([]);
+    c.fillStyle='#8b5cf6'; c.beginPath(); c.arc(x(last+5),y(fc),4,0,7); c.fill();
+    c.fillText('forecast '+f1(fc),x(last+6)-52,y(fc)-9);
+  }
+}
+
+function renderAlerts(){
+  const el=$('#alertList');
+  if(!S.log.length) return;
+  el.innerHTML = S.log.slice(0,12).map(a=>
+    `<div class="alert ${a.level==='WARN'?'warn':''}">
+      <div class="t">${a.level==='HIGH'?'🔴':'🟠'} ${a.title}</div>
+      <div class="m">${a.msg} · logged at T+${a.time}</div></div>`).join('');
+}
+
+function renderTriage(){
+  const mine={name:'You (this device)',age:31,temp:S.temps.length?S.temps[S.temps.length-1]:36.9,
+    trend:'up',syms:[...S.symptoms],pat:S.pattern,risk:S.risk,live:true};
+  const list=[...SEED_PATIENTS.map(p=>({...p,
+      risk:p.risk??riskScore(p.temp,new Set(p.syms))})), mine]
+    .sort((a,b)=>b.risk-a.risk);
+
+  $('#dHigh').textContent=list.filter(p=>p.risk>=70).length;
+  $('#dCount').textContent=list.length;
+  $('#dResp').textContent = S.alerts? '<10 s':'—';
+
+  $('#triBody').innerHTML=list.map((p,i)=>{
+    const lv=levelOf(p.risk);
+    const cls=lv==='HIGH'?'b-high':lv==='MODERATE'?'b-mod':'b-ok';
+    return `<tr class="click" onclick="selectPatient(${i})">
+      <td>${i+1}</td><td><b>${p.name}</b><br><span style="color:var(--muted);font-size:11.5px">
+      age ${p.age}${p.live?' · live':''}</span></td>
+      <td>${f1(p.temp)} °C</td><td>${p.pat}</td>
+      <td><b>${p.risk}</b></td>
+      <td><span class="badge ${cls}">${lv}</span></td></tr>`;
+  }).join('');
+  window.__list=list;
+}
+
+function selectPatient(i,keep){
+  const list=window.__list||[]; const p=list[i]; if(!p) return;
+  S.selected=i;
+  const lv=levelOf(p.risk);
+  const sym=p.syms.map(id=>(SYMPTOMS.find(s=>s.id===id)||{}).n).filter(Boolean);
+  $('#pDetail').innerHTML=`
+    <div class="kv"><span>Patient</span><b>${p.name}, ${p.age} y</b></div>
+    <div class="kv"><span>Temperature</span><b>${f1(p.temp)} °C (${p.trend})</b></div>
+    <div class="kv"><span>Fever pattern</span><b>${p.pat}</b></div>
+    <div class="kv"><span>AI risk score</span><b>${p.risk} / 100 → ${lv}</b></div>
+    <div class="kv"><span>Reported symptoms</span><b>${sym.length?sym.join(', '):'none logged'}</b></div>
+    <div class="kv"><span>Recommendation</span><b>${lv==='HIGH'
+        ?'Immediate tele-consult + escalation'
+        :lv==='MODERATE'?'Automated follow-up questions, review in 2 h'
+        :'Observe, hydration advice'}</b></div>`;
+  if(!keep){ drawChart($('#chart2'), simSeries(p), null); drawEvents($('#chart2')); }
+}
+
+function simSeries(p){
+  const out=[]; let v=36.9;
+  for(let i=0;i<24;i++){
+    v += (p.temp-36.9)/14 + (Math.random()-0.5)*0.25 + Math.sin(i/3)*0.12;
+    out.push(clamp(v,36.2,41));
+  }
+  out[out.length-1]=p.temp;
+  return out;
+}
+function drawEvents(cv){
+  const c=cv.getContext('2d'),W=cv.width,H=cv.height;
+  c.fillStyle='#ef4444';
+  [6,13,19].forEach(i=>{
+    const x=34+(i/23)*(W-48);
+    c.beginPath();c.arc(x,26,5,0,7);c.fill();
+    c.fillStyle='#8ea3c4';c.font='10.5px Segoe UI';
+    c.fillText('symptom report',x-32,14); c.fillStyle='#ef4444';
+  });
+}
+
+/* ---------------- virtual AI doctor ---------------- */
+function botSay(t){ addMsg('a',t); }
+function addMsg(who,text){
+  const d=document.createElement('div');
+  d.className='msg '+who;
+  d.innerHTML=`<div class="b"></div>`;
+  d.querySelector('.b').textContent=text;
+  $('#chat').appendChild(d);
+  $('#chat').scrollTop=1e6;
+}
+
+function reply(q){
+  const s=q.toLowerCase();
+  const temp=S.temps.length?S.temps[S.temps.length-1]:null;
+  if(/102|high fever|temperature rises|too high/.test(s))
+    return 'Above 102 °F (38.9 °C):\n• Sip fluids every 15 minutes, rest in a cool room.\n• Lukewarm sponging — never cold water or alcohol.\n• Do not self-medicate unless your doctor has prescribed it.\n'+
+      (temp?('Your current reading is '+f1(temp)+' °C.'):'');
+  if(/rash/.test(s)) return 'Fever with a rash can indicate a serious infection. Isolate, avoid scratching, and contact your doctor immediately. I will raise a red-flag alert if you log "Rash" as a symptom.';
+  if(/breath|shortness|dyspnea/.test(s)) return 'Shortness of breath with fever is a red flag. Sit upright, avoid exertion, and seek urgent care. I am flagging this to the clinician now.';
+  if(/headache|head hurts|head pain|head/.test(s)) return 'Headache with fever: rest, fluids, dim lighting. Paracetamol only if your doctor has approved it for you.';
+  if(/vomit|throw|nausea/.test(s)) return 'For vomiting: small sips of ORS every few minutes, nothing solid for 2–3 hours. If you cannot keep fluids down for 12 hours, escalate to a doctor.';
+  if(/cough|cold|throat|nose/.test(s)) return 'Steam inhalation twice daily, warm fluids, and salt-water gargles. Most viral colds settle in 5–7 days.';
+  if(/medicine|tablet|paracetamol|drug/.test(s)) return 'I can only relay doctor-approved templates — I cannot prescribe. Your clinician has approved guidance shown in the Cloud AI tab (Table 2).';
+  if(/risk|score|how serious|severity/.test(s))
+    return temp? ('Your AI risk score is '+S.risk+'/100 → '+S.level+' risk. Fever pattern: '+S.pattern+'. Severity class: '+S.sev+'.') : 'I need a few temperature readings first — start monitoring on the left.';
+  if(/what should i do|advice|help/.test(s))
+    return 'Keep monitoring every 15 minutes, log any new symptoms, and stay hydrated. I will alert your doctor automatically if your risk turns HIGH.';
+  if(/doctor|hospital|consult/.test(s))
+    return S.level==='HIGH'
+      ? 'Given your current HIGH risk, please consult a doctor now — I have already notified the on-duty clinician.'
+      : 'A routine consultation is reasonable. I will share your 24 h fever curve with your doctor through the dashboard.';
+  return 'I can help with fever care, symptom guidance, and your risk score. Try asking: "What should I do if my temperature rises above 102°F?"';
+}
+
+function sendChat(){
+  const v=$('#chatIn').value.trim(); if(!v) return;
+  addMsg('u',v); $('#chatIn').value='';
+  setTimeout(()=>botSay(reply(v)),260);
+}
+
+/* ---------------- guidance table ---------------- */
+$('#guideBody').innerHTML = GUIDANCE.map(r=>
+  `<tr>${r.map((c,i)=>`<td>${i===4&&/IMMEDIATE|Yes/.test(c)
+    ?`<b style="color:#fca5a5">${c}</b>`:c}</td>`).join('')}</tr>`).join('');
+
+/* ---------------- symptom list ---------------- */
+$('#symList').innerHTML = SYMPTOMS.map(s=>
+  `<label><input type="checkbox" value="${s.id}">${s.n}</label>`).join('');
+$('#symList').addEventListener('change',e=>{
+  e.target.checked? S.symptoms.add(e.target.value) : S.symptoms.delete(e.target.value);
+  if(S.temps.length){ /* recompute without advancing time */
+    const t=S.temps[S.temps.length-1];
+    S.risk=riskScore(t,S.symptoms); S.level=levelOf(S.risk);
+    const c=classify(t,S.symptoms,S.forecast); S.sev=c.sev; S.cause=c.cause;
+    renderAll();
+  }
+});
+
+$('#btnSubmit').onclick=()=>{
+  if(!S.symptoms.size){ botSay('No symptoms selected. Choose from the checklist or use voice input.'); return; }
+  const names=[...S.symptoms].map(id=>SYMPTOMS.find(s=>s.id===id).n);
+  botSay('Logged '+names.length+' symptom(s): '+names.join(', ')+'.\nMulti-modal fusion complete — my risk estimate is now '+S.risk+'/100 ('+S.level+').');
+  if(S.temps.length){ decide(S.temps[S.temps.length-1]); renderAll(); }
+};
+
+$('#btnVoice').onclick=()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ botSay('Voice input is not supported in this browser — please use the checklist.'); return; }
+  const r=new SR(); r.lang='en-IN'; r.interimResults=false;
+  botSay('Listening… say a symptom such as "headache" or "body ache".');
+  r.onresult=ev=>{
+    const txt=ev.results[0][0].transcript.toLowerCase();
+    addMsg('u','🎙 '+txt);
+    const hit=SYMPTOMS.filter(s=>txt.includes(s.n.split(' ')[0].toLowerCase()));
+    if(hit.length){ hit.forEach(h=>S.symptoms.add(h.id));
+      $('#symList').querySelectorAll('input').forEach(i=>{ if(S.symptoms.has(i.value)) i.checked=true; });
+      botSay('Recognised: '+hit.map(h=>h.n).join(', ')+'. Added to your symptom log.');
+    } else botSay('I could not map "'+txt+'" to a known symptom. Please pick it from the checklist.');
+  };
+  r.start();
+};
+
+/* ---------------- controls ---------------- */
+let timer=null;
+$('#btnStart').onclick=()=>{
+  S.running=!S.running;
+  $('#btnStart').textContent = S.running? '⏸ Pause monitoring':'▶ Start monitoring';
+  if(S.running){
+    botSay('Monitoring started. Readings arrive every 15 minutes (simulated). I will analyse each packet and alert you if risk turns HIGH.');
+    timer=setInterval(()=>{ if(S.tick<40) step(); else {clearInterval(timer);S.running=false;
+      $('#btnStart').textContent='▶ Restart monitoring';
+      botSay('24-hour cycle complete — 40 readings captured. Your full fever curve is now on the clinician dashboard.');}
+    },1400);
+    if(!S.tick) step();
+  } else clearInterval(timer);
+};
+$('#btnStep').onclick=()=>step();
+$('#scenario').onchange=()=>{ S.temps=[];S.times=[];S.tick=0;S.log=[];S.alerts=0;
+  S._lastLevel=null; S._lastAlertTick=-99;
+  renderAlerts(); $('#alertList').innerHTML='<div class="hint">Scenario reset. Start monitoring to generate data.</div>';
+  renderAll(); };
+
+$('#chatSend').onclick=sendChat;
+$('#chatIn').addEventListener('keydown',e=>{ if(e.key==='Enter') sendChat(); });
+
+$('#btnAck').onclick=()=>{
+  if(S.log.length){ const a=S.log[0]; a.title='ACKNOWLEDGED — '+a.title; renderAlerts();
+    addMsg('a','Clinician acknowledged the top alert at T+'+S.log[0].time+'. Closed loop: alert → acknowledgement → action.'); }
+  else addMsg('a','No open alerts to acknowledge.');
+};
+$('#btnAdvice').onclick=()=>botSay('Clinician sent you approved guidance: hydration, rest, and monitoring every 15 minutes. Re-submit symptoms if anything changes.');
+$('#btnEscalate').onclick=()=>{
+  raiseAlert('HIGH','Escalation initiated by clinician','Voice call placed · escalation recorded in audit log');
+  renderAlerts();
+};
+
+$$('nav button').forEach(b=>b.onclick=()=>{
+  $$('nav button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  $$('.view').forEach(v=>v.classList.remove('on'));
+  $('#v-'+b.dataset.v).classList.add('on');
+});
+
+/* ---------------- boot ---------------- */
+addMsg('a','Namaste 🙏 I am your AI Doctor. Start monitoring, then log symptoms — I will track your fever curve and alert your clinician if needed.');
+renderAll();
+</script>
+</body>
+</html>
